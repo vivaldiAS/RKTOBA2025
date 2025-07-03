@@ -1,0 +1,140 @@
+:root {
+    --color-chat-secondary: #65A1EF;
+    --color-chat-primary: #F15743;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.button-customer-chatbot{
+    display: flex;
+    position: fixed;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    left: 60px;
+    bottom: 60px;
+    cursor: pointer;
+    z-index: 10000;
+}
+.button-customer-chatbot.close{
+    left: 500px;
+}
+.button-customer-chatbot > img:first-child{
+    visibility: visible;
+    opacity: 1;
+}
+.button-customer-chatbot > img:nth-child(2){
+    visibility: hidden;
+    opacity: 0;
+}
+.button-customer-chatbot.close> img:first-child {
+    visibility: hidden;
+    opacity: 0;
+}
+.button-customer-chatbot.close> img:nth-child(2){
+    visibility: visible;
+    opacity: 1;
+}
+
+.button-customer-chatbot > img {
+    width: 60px;
+    height: 60px;
+    position: fixed;
+}
+.box-chat-customer-service {
+    padding: 5px 10px;
+    position: fixed;
+    display: flex;
+    justify-content: flex-end;
+    flex-direction: column;
+    width: 400px;
+    max-height: 90vh;
+    scrollbar-width: none;
+    bottom: 30px;
+    left: 60px;
+    transition: all .5s ease-in-out;
+    visibility: visible;
+    opacity: 1;
+    z-index: 10000;
+
+}
+.box-chat-customer-service.hide-chat {
+    height: 0px;
+    opacity: 0;
+    visibility: hidden;
+}
+.box-chat-customer-service > .wrap-chat {
+    max-height: 85vh;
+    -ms-overflow-style: none;
+    overflow-y: auto;
+}
+
+.box-chat-customer-service > .wrap-chat::-webkit-scrollbar {
+    display: none;
+}
+
+
+.box-chat-customer-service > .wrap-chat > .chat-message{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+.box-chat-customer-service >  .wrap-chat > .chat-message.right {
+    flex-direction: row-reverse;
+}
+.box-chat-customer-service  > .wrap-chat > .chat-message > img {
+    width: 60px;
+}
+
+.box-chat-customer-service  > .wrap-chat > .chat-message > .message {
+    padding: 10px 10px;
+    font-size: small;
+    background: var(--color-chat-primary);
+    border-radius: 10px;
+    color: white;
+}
+
+.box-chat-customer-service  > .wrap-chat >  .chat-message.right > .message {
+    background: var(--color-chat-secondary);
+}
+
+
+.box-chat-customer-service > .input-message{
+    width: 100%;
+    display: grid;
+}
+
+.box-chat-customer-service > .input-message::after {
+    content: attr(data-replicated-value);
+    white-space: pre-wrap;
+    visibility: hidden;
+}
+
+
+
+.box-chat-customer-service > .input-message > textarea {
+    resize: none;
+    width: 100%;
+    font-size: small;
+    max-height: 150px;
+    border-radius: 10px;
+    background: none;
+    outline: none;
+    border: 1px solid var(--color-chat-primary);
+    background: white;
+}
+
+.box-chat-customer-service > .input-message > textarea,
+.box-chat-customer-service > .input-message::after {
+    grid-area: 1 / 1 / 2 / 2;
+    padding: 10px;
+}
+
+.box-chat-customer-service > .input-message > textarea::-webkit-scrollbar{
+    display: none;
+}
