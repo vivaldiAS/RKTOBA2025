@@ -57,7 +57,7 @@ class AlamatController extends Controller{
     }
 }
 
-    public function AlamatPenggunas()
+public function AlamatPenggunas()
 {
     $user = Auth::user(); // Mengambil user dari token Bearer
 
@@ -68,13 +68,63 @@ class AlamatController extends Controller{
     }
 
     $alamat = DB::table('user_address')
-                ->where('user_id', '=', $user->id)
-                ->get();
+        ->leftJoin('default_user_address', function ($join) use ($user) {
+            $join->on('user_address.user_address_id', '=', 'default_user_address.address_id')
+                 ->where('default_user_address.user_id', '=', $user->id);
+        })
+        ->where('user_address.user_id', '=', $user->id)
+        ->select(
+            'user_address.user_address_id',
+            'user_address.user_id',
+            'user_address.province_id',
+            'user_address.province_name',
+            'user_address.city_id',
+            'user_address.city_name',
+            'user_address.subdistrict_id',
+            'user_address.subdistrict_name',
+            'user_address.user_street_address',
+            'user_address.is_deleted',
+            DB::raw('IF(default_user_address.address_id IS NOT NULL, 1, 0) as is_default')
+        )
+        ->get();
 
     return response()->json([
         'alamat' => $alamat,
     ]);
 }
+
+public function setDefaultAlamat(Request $request)
+{
+    $user = Auth::user();
+
+    if (!$user) {
+        return response()->json([
+            'message' => 'Unauthenticated',
+        ], 401);
+    }
+
+    $request->validate([
+        'address_id' => 'required|exists:user_address,user_address_id',
+    ]);
+
+    // 👉 Bagian yang kamu tanyakan:
+    DB::table('default_user_address')
+        ->where('user_id', $user->id)
+        ->delete();
+
+    DB::table('default_user_address')->insert([
+        'user_id' => $user->id,
+        'address_id' => $request->address_id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    return response()->json([
+        'message' => 'Alamat default berhasil disetel.',
+    ]);
+}
+
+
     public function AlamatPengguna(Request $request)
     {
         $alamat = DB::table('user_address')->select('*')->where('user_id', '=', $request->user_id)->get();

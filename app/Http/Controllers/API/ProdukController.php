@@ -32,134 +32,163 @@ class ProdukController extends Controller
 
     return response()->json($products);
 }
-    public function index()
-    {
-        $produk_makanan_minuman_terlaris = DB::table('product_purchases')
-            ->select(
-                DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name',
-                DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
-                )
-            ->where('is_deleted', 0)
-            ->where(function ($query) {
-                $query->where('products.category_id', 1)
-                      ->orWhere('products.category_id', 7);
-            })
-            ->join('products', 'product_purchases.product_id', '=', 'products.product_id')
-            ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
-            ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
-            ->join('categories', 'products.category_id', '=', 'categories.category_id')
-            ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
-            ->groupBy(
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name'
-            )
-            ->orderBy('count_product_purchases', 'desc')
-            ->limit(20)->get();
-    
-        $produk_pakaian_terlaris = DB::table('product_purchases')
-            ->select(
-                DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name',
-                DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
-                )
-            ->where('is_deleted', 0)
-            ->where('products.category_id', 2)
-            ->join('products', 'product_purchases.product_id', '=', 'products.product_id')
-            ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
-            ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
-            ->join('categories', 'products.category_id', '=', 'categories.category_id')
-            ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
-            ->groupBy(
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name'
-            )
-            ->orderBy('count_product_purchases', 'desc')
-            ->limit(20)->get();
-    
-        $new_products = DB::table('products')
-            ->select(
-                'products.*',
-                'categories.nama_kategori',
-                'merchants.nama_merchant',
-                'merchant_address.subdistrict_name',
-DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
-                )
-            ->where('is_deleted', 0)
-            ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
-            ->join('categories', 'products.category_id', '=', 'categories.category_id')
-            ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
-            ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
-            ->groupBy(
-                'products.product_id',
-                'categories.nama_kategori',
-                'merchants.nama_merchant',
-                'merchant_address.subdistrict_name'
-            )
-            ->orderBy('products.product_id', 'desc')
-            ->limit(20)->get();
-    
-        $products = DB::table('products')
-            ->select(
-                'products.*',
-                'categories.nama_kategori',
-                'merchants.nama_merchant',
-                'merchant_address.subdistrict_name',
-                DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
-                )
-            ->where('is_deleted', 0)
-            ->join('categories', 'products.category_id', '=', 'categories.category_id')
-            ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
-            ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
-            ->join('stocks', 'stocks.product_id', '=', 'products.product_id')
-            ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
-            ->groupBy(
-                'products.product_id',
-                'categories.nama_kategori',
-                'merchants.nama_merchant',
-                'merchant_address.subdistrict_name'
-            )
-            ->inRandomOrder()->get();
-    
-        $product_images = DB::table('product_images')
-            ->select('product_id', DB::raw('MIN(product_image_name) AS product_image_name'))
-            ->groupBy('product_id')
-            ->orderBy('product_id', 'asc')->get();
-    
-        return response()->json([
-            'produk_makanan_minuman_terlaris' => $produk_makanan_minuman_terlaris,
-            'produk_pakaian_terlaris' => $produk_pakaian_terlaris,
-            'new_products' => $new_products,
-            'products' => $products,
-            'product_images' => $product_images
-        ]);
-    }
+public function index()
+{
+    $produk_makanan_minuman_terlaris = DB::table('product_purchases')
+        ->select(
+            DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name',
+            DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
+        )
+        ->where('is_deleted', 0)
+        ->where(function ($query) {
+            $query->where('products.category_id', 1)
+                ->orWhere('products.category_id', 7);
+        })
+        ->join('products', 'product_purchases.product_id', '=', 'products.product_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
+        ->join('categories', 'products.category_id', '=', 'categories.category_id')
+        ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
+        ->groupBy(
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name'
+        )
+        ->orderBy('count_product_purchases', 'desc')
+        ->limit(20)->get();
+
+    $produk_pakaian_terlaris = DB::table('product_purchases')
+        ->select(
+            DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name',
+            DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
+        )
+        ->where('is_deleted', 0)
+        ->where('products.category_id', 2)
+        ->join('products', 'product_purchases.product_id', '=', 'products.product_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
+        ->join('categories', 'products.category_id', '=', 'categories.category_id')
+        ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
+        ->groupBy(
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name'
+        )
+        ->orderBy('count_product_purchases', 'desc')
+        ->limit(20)->get();
+
+    $new_products = DB::table('products')
+        ->select(
+            'products.product_id',
+            'products.product_name',
+            'products.category_id',
+            'products.price',
+            'products.merchant_id',
+            'products.product_description',
+            'products.heavy',
+            'products.type',
+            'categories.nama_kategori',
+            'merchants.nama_merchant',
+            'merchant_address.subdistrict_name',
+            DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
+        )
+        ->where('is_deleted', 0)
+        ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
+        ->join('categories', 'products.category_id', '=', 'categories.category_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
+        ->groupBy(
+            'products.product_id',
+            'products.product_name',
+            'products.category_id',
+            'products.price',
+            'products.merchant_id',
+            'products.product_description',
+            'products.heavy',
+            'products.type',
+            'categories.nama_kategori',
+            'merchants.nama_merchant',
+            'merchant_address.subdistrict_name'
+        )
+        ->orderBy('products.product_id', 'desc')
+        ->limit(20)->get();
+
+    $products = DB::table('products')
+        ->select(
+            'products.product_id',
+            'products.product_name',
+            'products.category_id',
+            'products.price',
+            'products.merchant_id',
+            'products.product_description',
+            'products.heavy',
+            'products.type',
+            'categories.nama_kategori',
+            'merchants.nama_merchant',
+            'merchant_address.subdistrict_name',
+            DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
+        )
+        ->where('is_deleted', 0)
+        ->join('categories', 'products.category_id', '=', 'categories.category_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
+        ->join('stocks', 'stocks.product_id', '=', 'products.product_id')
+        ->leftJoin('reviews', 'reviews.product_id', '=', 'products.product_id')
+        ->groupBy(
+            'products.product_id',
+            'products.product_name',
+            'products.category_id',
+            'products.price',
+            'products.merchant_id',
+            'products.product_description',
+            'products.heavy',
+            'products.type',
+            'categories.nama_kategori',
+            'merchants.nama_merchant',
+            'merchant_address.subdistrict_name'
+        )
+        ->inRandomOrder()->get();
+
+    $product_images = DB::table('product_images')
+        ->select('product_id', DB::raw('MIN(product_image_name) AS product_image_name'))
+        ->groupBy('product_id')
+        ->orderBy('product_id', 'asc')->get();
+
+    return response()->json([
+        'produk_makanan_minuman_terlaris' => $produk_makanan_minuman_terlaris,
+        'produk_pakaian_terlaris' => $produk_pakaian_terlaris,
+        'new_products' => $new_products,
+        'products' => $products,
+        'product_images' => $product_images
+    ]);
+}
+
     
     public function produk_detail(Request $request)
     {
@@ -176,50 +205,55 @@ DB::raw('COALESCE(ROUND(AVG(reviews.nilai_review), 1), 0) as average_rating')
         );
     }
 
-    public function lihat_produk(Request $request)
-    {
-        $validasi = Validator::make($request->all(), [
-            'nama_kategori' => 'required',
-        ]);
+public function lihat_produk(Request $request)
+{
+    $validasi = Validator::make($request->all(), [
+        'nama_kategori' => 'required',
+    ]);
 
-        if ($validasi->fails()) {
-            $val = $validasi->errors()->all();
-            return response()->json(['message' => $val[0]], 400);
-        }
-
-        $products = DB::table('products')->where('is_deleted', 0)
-            ->select(
-                DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name')
-            ->where('categories.nama_kategori', '=', $request->nama_kategori)
-            ->join('categories', 'products.category_id', '=', 'categories.category_id')
-            ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
-            ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
-            ->join('product_purchases', 'product_purchases.product_id', '=', 'products.product_id')
-            ->join('stocks', 'stocks.product_id', '=', 'products.product_id')
-            ->groupBy(
-                'product_purchases.product_id',
-                'products.product_name',
-                'products.category_id',
-                'nama_kategori',
-                'products.merchant_id',
-                'nama_merchant',
-                'products.price',
-                'merchant_address.subdistrict_name')
-            ->inRandomOrder()->get();
-
-        return response()->json(
-            $products,
-            200
-        );
+    if ($validasi->fails()) {
+        $val = $validasi->errors()->all();
+        return response()->json(['message' => $val[0]], 400);
     }
+
+    $products = DB::table('products')
+        ->where('products.is_deleted', 0)
+        ->select(
+            DB::raw('SUM(jumlah_pembelian_produk) as count_product_purchases'),
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name',
+            // Tambahkan gambar pertama dari tabel product_images
+            DB::raw('(SELECT product_image_name FROM product_images WHERE product_images.product_id = products.product_id LIMIT 1) as product_image_name')
+        )
+        ->where('categories.nama_kategori', '=', $request->nama_kategori)
+        ->join('categories', 'products.category_id', '=', 'categories.category_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->join("merchant_address", 'merchant_address.merchant_id', "=", "products.merchant_id")
+        ->join('product_purchases', 'product_purchases.product_id', '=', 'products.product_id')
+        ->join('stocks', 'stocks.product_id', '=', 'products.product_id')
+        ->groupBy(
+            'product_purchases.product_id',
+            'products.product_name',
+            'products.category_id',
+            'categories.nama_kategori',
+            'products.merchant_id',
+            'merchants.nama_merchant',
+            'products.price',
+            'merchant_address.subdistrict_name',
+            'products.product_id'
+        )
+        ->inRandomOrder()
+        ->get();
+
+    return response()->json($products, 200);
+}
+
 
 
     public function pilih_kategori()

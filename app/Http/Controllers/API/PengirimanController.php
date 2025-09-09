@@ -18,6 +18,21 @@ class PengirimanController extends Controller
 public function postBeliProdukMultiProduk(Request $request)
 {
     date_default_timezone_set('Asia/Jakarta');
+
+// Format tanggal: YYYYMMDD
+$tanggal_hari_ini = date('Ymd');
+
+// Ambil jumlah pembelian hari ini
+$jumlah_pembelian_hari_ini = DB::table('purchases')
+    ->whereDate('created_at', Carbon::today())
+    ->count();
+
+// Nomor urut 4 digit, mulai dari 1, format: 0001, 0002, dst
+$nomor_urut = str_pad($jumlah_pembelian_hari_ini + 1, 4, '0', STR_PAD_LEFT);
+
+// Format akhir kode pembelian
+
+    date_default_timezone_set('Asia/Jakarta');
     $user_id = Auth::id();
 
     $dataMerchants = $request->merchants;
@@ -44,7 +59,7 @@ public function postBeliProdukMultiProduk(Request $request)
         ]);
 
         $purchase_id = DB::table('purchases')->insertGetId([
-            'kode_pembelian' => 'rkt_' . time(),
+            'kode_pembelian' => 'rkt_' . $tanggal_hari_ini . $nomor_urut,
             'user_id' => $user_id,
             'checkout_id' => $checkout_id,
             'alamat_purchase' => $request->alamat_purchase ?? '',
@@ -107,8 +122,22 @@ public function postBeliProdukMultiProduk(Request $request)
     {
         date_default_timezone_set('Asia/Jakarta');
 
+// Format tanggal: YYYYMMDD
+$tanggal_hari_ini = date('Ymd');
+
+// Ambil jumlah pembelian hari ini
+$jumlah_pembelian_hari_ini = DB::table('purchases')
+    ->whereDate('created_at', Carbon::today())
+    ->count();
+
+// Nomor urut 4 digit, mulai dari 1, format: 0001, 0002, dst
+$nomor_urut = str_pad($jumlah_pembelian_hari_ini + 1, 4, '0', STR_PAD_LEFT);
+
+// Format akhir kode pembelian
+
+
         $user_id = Auth::id();
-        $kode_pembelian = 'rkt_' . time();
+        $kode_pembelian = 'rkt_' . $tanggal_hari_ini . $nomor_urut;
         $now = Carbon::now();
 
         // Ambil input dari request
@@ -206,8 +235,23 @@ public function belilangsung(Request $request)
 {
     date_default_timezone_set('Asia/Jakarta');
 
+// Format tanggal: YYYYMMDD
+$tanggal_hari_ini = date('Ymd');
+
+// Ambil jumlah pembelian hari ini
+$jumlah_pembelian_hari_ini = DB::table('purchases')
+    ->whereDate('created_at', Carbon::today())
+    ->count();
+
+// Nomor urut 4 digit, mulai dari 1, format: 0001, 0002, dst
+$nomor_urut = str_pad($jumlah_pembelian_hari_ini + 1, 4, '0', STR_PAD_LEFT);
+
+// Format akhir kode pembelian
+$kode_pembelian = 'rkt_' . $tanggal_hari_ini . $nomor_urut;
+
+    
     $user_id = $request->user_id;
-    $kode_pembelian = 'rkt_' . time();
+    $kode_pembelian = 'rkt_' . $tanggal_hari_ini . $nomor_urut;
     $jumlah_masuk_keranjang = $request->jumlah_masuk_keranjang;
     $voucher_pembelian = $request->voucher_pembelian;
     $voucher_ongkos_kirim = $request->voucher_ongkos_kirim;
@@ -353,6 +397,49 @@ public function belilangsung(Request $request)
         );
     }
 
+public function produkYangDibeli(Request $request)
+{
+    $user = Auth::user();
+
+    $produk = DB::table('product_purchases')
+        ->join('purchases', 'product_purchases.purchase_id', '=', 'purchases.purchase_id')
+        ->join('products', 'product_purchases.product_id', '=', 'products.product_id')
+        ->join('merchants', 'products.merchant_id', '=', 'merchants.merchant_id')
+        ->leftJoin('reviews', function($join) use ($user) {
+            $join->on('products.product_id', '=', 'reviews.product_id')
+                 ->where('reviews.user_id', '=', $user->id);
+        })
+        ->leftJoin('product_images', 'products.product_id', '=', 'product_images.product_id')
+        ->where('purchases.user_id', $user->id)
+        ->whereIn('purchases.status_pembelian', ['status4', 'status4_ambil_b', 'status5', 'status5_ambil'])
+        ->where('purchases.is_cancelled', 0)
+        ->select(
+            'products.product_id',
+            'products.product_name',
+            'products.product_description',
+            'products.price',
+            'products.heavy',
+            'merchants.nama_merchant',
+            'product_images.product_image_name',
+            DB::raw('MAX(purchases.created_at) as terakhir_dibeli'),
+            DB::raw('SUM(product_purchases.jumlah_pembelian_produk) as total_dibeli'),
+            DB::raw('CASE WHEN reviews.review_id IS NULL THEN false ELSE true END as sudah_review')
+        )
+        ->groupBy(
+            'products.product_id',
+            'products.product_name',
+            'products.product_description',
+            'products.price',
+            'products.heavy',
+            'merchants.nama_merchant',
+            'product_images.product_image_name',
+            'reviews.review_id'
+        )
+        ->orderByDesc('terakhir_dibeli')
+        ->get();
+
+    return response()->json($produk);
+}
     public function menunggu_pembayaran(Request $request)
     {
         setlocale(LC_TIME, 'id_ID');

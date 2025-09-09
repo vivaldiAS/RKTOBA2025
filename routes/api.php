@@ -19,8 +19,10 @@ use App\Http\Controllers\API\ObrolanController;
 use App\Http\Controllers\API\ReviewController;
 use App\Http\Controllers\API\SearchHistoryController;
 use App\Http\Controllers\API\NotifikasiController;
-use App\Http\Controllers\Api\TokoAPIController;
-use App\Http\Controllers\Api\CarouselController;
+use App\Http\Controllers\API\TokoAPIController;
+use App\Http\Controllers\API\CarouselController;
+use App\Http\Controllers\API\PesananNotifikasiController;
+
 
 
 
@@ -39,11 +41,20 @@ use App\Http\Controllers\Api\CarouselController;
 //     return $request->user();
 // });
 
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifikasi2', [PesananNotifikasiController::class, 'getUserNotifications']);
+    Route::put('/notifikasi/{id}/reads', [PesananNotifikasiController::class, 'markAsRead']);
+});
+
 Route::get('/toko/{id}', [TokoAPIController::class, 'show']);
+Route::get('/categories', [TokoAPIController::class, 'listCategories']);
 Route::get('carousels', [CarouselController::class, 'getCarousels']);
 
 Route::middleware('auth:sanctum')->post('/alamat/edit', [AlamatController::class, 'EditAlamat']);
 Route::middleware('auth:sanctum')->get('/alamat-pengguna', [AlamatController::class, 'AlamatPenggunas']);
+Route::middleware('auth:sanctum')->post('/alamat/default', [AlamatController::class, 'setDefaultAlamat']);
+
 
 Route::get('/image-proxy', function (Request $request) {
     $url = $request->query('url');
@@ -70,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifikasi', [NotifikasiController::class, 'getUserNotifications']);
     Route::put('/notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead']);
+    Route::post('/send-product-purchased-notification/{merchant_id}/{purchase_id}', [NotifikasiController::class, 'sendProductPurchasedNotification']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -78,6 +90,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat/{id}', [ObrolanController::class, 'postChat']); // Kirim chat baru
     Route::delete('/obrolan/delete/{chat_id}', [ObrolanController::class, 'hapusChat']);
 });
+
+Route::middleware('auth:sanctum')->get('/merchant/chats', [ObrolanController::class, 'getMerchantChats']);
+Route::middleware('auth:sanctum')->get('/merchant/chat-detail/{user_id}', [ObrolanController::class, 'getMerchantChatDetail']);
+Route::middleware('auth:sanctum')->post('/merchant/chat-detail/{user_id}', [ObrolanController::class, 'sendMerchantMessage']);
+
 
 Route::get('/reviews/{productId}/average', [ReviewController::class, 'averageRating']);
 
@@ -124,6 +141,8 @@ Route::post('menunggu_pembayaran', [PengirimanController::class, 'menunggu_pemba
 Route::post('detail_pesanan', [PengirimanController::class, 'detail_pesanan']);
 Route::post('hapuspesanan', [PengirimanController::class, 'hapus']);
 Route::post('PostBuktiPembayaran', [PengirimanController::class, 'PostBuktiPembayaran']);
+Route::middleware('auth:sanctum')->get('/produk-yang-dibeli', [PengirimanController::class, 'produkYangDibeli']);
+
 
 
 //wishlist

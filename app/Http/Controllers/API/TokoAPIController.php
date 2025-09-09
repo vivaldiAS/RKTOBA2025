@@ -8,6 +8,20 @@ use Illuminate\Http\Request;
 
 class TokoAPIController extends Controller
 {
+
+    public function listCategories()
+{
+    $categories = \DB::table('categories')
+        ->select('category_id', 'nama_kategori', 'type')
+        ->where('disabled', 0)
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'data' => $categories
+    ]);
+}
+
 public function show($id)
 {
     $merchant = Merchants::with(['address', 'products.productImages'])

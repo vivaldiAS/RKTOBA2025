@@ -4,21 +4,19 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class KuisionerController extends Controller
 {
     public function index()
     {
-        // Ambil semua pertanyaan
         $pertanyaan = DB::table('pertanyaan')->select('id', 'teks_pertanyaan')->get();
 
-        // Ambil semua opsi, dikelompokkan berdasarkan id_pertanyaan
         $opsi = DB::table('opsi_pertanyaan')
             ->select('id', 'id_pertanyaan', 'teks_opsi')
             ->get()
             ->groupBy('id_pertanyaan');
 
-        // Gabungkan pertanyaan dengan opsinya
         $result = $pertanyaan->map(function ($item) use ($opsi) {
             return [
                 'id' => $item->id,
@@ -33,43 +31,61 @@ class KuisionerController extends Controller
         ]);
     }
 
-    public function simpanJawaban(\Illuminate\Http\Request $request)
-{
-    $request->validate([
-        'user_id' => 'required|integer',
-        'jawaban' => 'required|array',
-        'jawaban.*.pertanyaan_id' => 'required|integer',
-        'jawaban.*.opsi_id' => 'required|integer',
-    ]);
+    public function simpanJawaban(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|integer',
+            'jawaban' => 'required|array',
+            'jawaban.*.pertanyaan_id' => 'required|integer',
+            'jawaban.*.opsi_id' => 'required|array|min:1',
+            'jawaban.*.opsi_id.*' => 'integer',
+        ]);
 
-    // Ambil jumlah pertanyaan di DB
-    $jumlahPertanyaan = DB::table('pertanyaan')->count();
+        $jumlahPertanyaan = DB::table('pertanyaan')->count();
 
-    // Cek apakah jumlah jawaban sesuai jumlah pertanyaan
-    if (count($request->jawaban) < $jumlahPertanyaan) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Semua pertanyaan wajib dijawab.'
-        ], 422);
+        if (count($request->jawaban) < $jumlahPertanyaan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semua pertanyaan wajib dijawab.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->jawaban as $item) {
+                // Simpan jawaban_user
+                $jawabanUserId = DB::table('jawaban_user')->insertGetId([
+                    'user_id' => $request->user_id,
+                    'pertanyaan_id' => $item['pertanyaan_id'],
+                ]);
+
+                // Siapkan opsi
+                $opsiInsert = [];
+                foreach ($item['opsi_id'] as $opsiId) {
+                    $opsiInsert[] = [
+                        'jawaban_user_id' => $jawabanUserId,
+                        'opsi_id' => $opsiId,
+                    ];
+                }
+
+                // Simpan ke jawaban_user_opsi
+                DB::table('jawaban_user_opsi')->insert($opsiInsert);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jawaban berhasil disimpan.'
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menyimpan jawaban.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-
-    // Persiapkan data untuk insert bulk
-    $dataInsert = [];
-    foreach ($request->jawaban as $item) {
-        $dataInsert[] = [
-            'user_id' => $request->user_id,
-            'pertanyaan_id' => $item['pertanyaan_id'],
-            'opsi_id' => $item['opsi_id'],
-        ];
-    }
-
-    // Simpan ke database
-    DB::table('jawaban_user')->insert($dataInsert);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Jawaban berhasil disimpan.'
-    ]);
-}
-
 }

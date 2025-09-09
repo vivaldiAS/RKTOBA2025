@@ -11,27 +11,36 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 class AutentikasiController extends Controller
 {
     //
 public function Register(Request $request)
 {
-    $request->validate([
-        'username' => 'required|unique:users',
-        'email' => 'required|email|unique:users',
-        'password' => 'required',
-        'name' => 'required',
-        'no_hp' => 'required',
-        'birthday' => 'required',
-        'gender' => 'required',
-    ]);
+    try {
+        $request->validate([
+            'username' => 'required|unique:users',
+            'email' => 'required|email|unique:users',
+            'password' => 'required',
+            'name' => 'required',
+            'no_hp' => 'required|unique:profiles',
+            'birthday' => 'required',
+            'gender' => 'required',
+        ]);
+    } catch (ValidationException $e) {
+        // Ambil pesan error pertama yang muncul
+        $errors = $e->validator->errors()->all();
+        return response()->json([
+            'message' => $errors[0] ?? 'Validasi gagal.',
+        ], 400);
+    }
 
-    // Simpan ke tabel users (tanpa bcrypt)
+    // Simpan ke tabel users (tanpa bcrypt - sesuai permintaan)
     $user = User::create([
         'username' => $request->username,
         'email' => $request->email,
-        'password' => $request->password, // ⛔ plaintext, sesuai permintaan
+        'password' => $request->password, // ⛔ plaintext (tidak disarankan)
     ]);
 
     // Simpan ke tabel profiles
@@ -43,13 +52,12 @@ public function Register(Request $request)
         'gender' => $request->gender,
     ]);
 
-    // Login otomatis (pakai Auth::attempt)
+    // Login otomatis
     Auth::attempt(['username' => $request->username, 'password' => $request->password]);
 
-    // Generate token (untuk API)
+    // Buat token
     $token = $user->createToken('MyApp')->plainTextToken;
 
-    // ⚠️ Jangan ubah format response ini!
     return response()->json([
         'token' => $token,
         'user' => [
@@ -92,8 +100,13 @@ public function Register(Request $request)
         
     }
 
-    public function cekLogin(Request $request)
+public function cekLogin(Request $request)
 {
+    Log::info('Login attempt', [
+        'username' => $request->username,
+        'password' => $request->password,
+    ]);
+
     $validasi = Validator::make($request->all(), [
         'username' => 'required',
         'password' => 'required',
@@ -110,12 +123,10 @@ public function Register(Request $request)
         return response()->json(['message' => 'Username atau password salah.'], 401);
     }
 
-    // Periksa apakah pengguna adalah admin
     if ($user->is_admin != 1) {
         return response()->json(['message' => 'Hanya admin yang diizinkan untuk login.'], 403);
     }
 
-    // Jika pengguna adalah admin, buat token dan kembalikan respons
     $token = $user->createToken('MyApp')->plainTextToken;
     return response()->json(['token' => $token], 200);
 }
